@@ -18,4 +18,4 @@ Branch: master
 
 
 | [![Xiaomi Zigbee Outlet](images/outlet.jpg)](./devicetypes/bspranger/xiaomi-zigbee-outlet.src) | |
-| **Xiaomi Zigbee Outlet**<br>**Note:** We do not recommend this outlet as they may make SmartThings less stable. | |
+| **Xiaomi Zigbee Outlet**| |
