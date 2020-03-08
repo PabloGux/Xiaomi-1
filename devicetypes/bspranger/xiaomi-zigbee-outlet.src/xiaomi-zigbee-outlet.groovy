@@ -1,7 +1,7 @@
-/**
- *  Xiaomi Smart Plug - model ZNCZ02LM
- *  Device Handler for SmartThings
- *  Version 1.2
+//**
+ *  Aqara and Xiaomi Smart Plug - model ZNCZ02LM (lumi.plug) - ZNCZ12LM (lumi.ctrl_86plug.aq1)-  
+ *  Device Handler for Hubitat
+ *  Version 0.1 - Stable
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -15,10 +15,12 @@
  *  Based on original device handler by Lazcad / RaveTam
  *  Updates and contributions to code by a4refillpad, bspranger, marcos-mvs, mike-debney, Tiago_Goncalves, and veeceeoh
  *
+ * Original version by bspranger
+ * Modified by PabloGux to work under Hubitat and report Power Usage --- REVERSE HEX ORDER!!!
  */
 
 metadata {
-	definition (name: "Xiaomi Zigbee Outlet", namespace: "bspranger", author: "bspranger") {
+	definition (name: "Xiaomi Zigbee Outlet", namespace: "PabloGux", author: "PabloGux") {
 		capability "Actuator"
 		capability "Configuration"
 		capability "Refresh"
@@ -154,8 +156,18 @@ private Map parseReportAttributeMessage(String description) {
 		resultMap = getBatteryResult(convertHexToInt(descMap.value / 2))
 	}
 	if (descMap.cluster == "0002" && descMap.attrId == "0000") {
-		def tempScale = getTemperatureScale()
-		def tempValue = zigbee.parseHATemperatureValue("temperature: " + (convertHexToInt(descMap.value) / 2), "temperature: ", tempScale) + (tempOffset ? tempOffset : 0)
+		log.debug "${device.displayName}: description is  ${description}"
+        def tempScale = getTemperatureScale()
+        log.debug "${device.displayName}: argument HEX is ${descMap.value}"
+        def revtemp = reverseHexString (descMap.value)
+        log.debug "${device.displayName}: argument HEX (rev) is ${revtemp}"
+        log.debug "${device.displayName}: calculo original INT /2 is ${convertHexToInt(descMap.value) / 2}"
+        log.debug "${device.displayName}: calculo bigendian argument INT (rev) /2 is ${convertHexToInt(revtemp) / 2}"
+        def tempValue = convertHexToInt(revtemp) / 2 + (tempOffset ? tempOffset : 0)
+    
+		//def tempValue = zigbee.parseHATemperatureValue("temperature: " + (convertHexToInt(descMap.value) / 2), "temperature: ", tempScale) + (tempOffset ? tempOffset : 0)
+        log.debug "${device.displayName}: description is  ${description}"
+        //def value = ((description - "temperature: ").trim()) as Float
 		resultMap = createEvent(name: "temperature", value: tempValue, unit: tempScale, translatable: true)
 		log.debug "${device.displayName}: Reported temperature is ${resultMap.value}°$tempScale"
 	}
@@ -163,14 +175,19 @@ private Map parseReportAttributeMessage(String description) {
 		resultMap = createEvent(name: "switch", value: "off")
 	}
 	else if (descMap.cluster == "000C" && descMap.attrId == "0055" && descMap.endpoint == "02") {
-		def wattage_int = Long.parseLong(descMap.value, 16)
+        def rev = reverseHexString (descMap.value)
+        //log.debug "${device.displayName}: HEX value reversed is ${rev}"
+        //def wattage_int = Long.parseLong(descMap.value, 16)
+        def wattage_int = Long.parseLong(rev, 16)
 		def wattage = Float.intBitsToFloat(wattage_int.intValue())
 		wattage = Math.round(wattage * 10) * 0.1
 		resultMap = createEvent(name: "power", value: wattage, unit: 'W')
 		log.debug "${device.displayName}: Reported power use is ${wattage}W"
 	}
 	else if (descMap.cluster == "000C" && descMap.attrId == "0055" && descMap.endpoint == "03") {
-		def energy_int = Long.parseLong(descMap.value, 16)
+		
+        def revener = reverseHexString (descMap.value)
+        def energy_int = Long.parseLong(revener, 16)
 		def energy = Float.intBitsToFloat(energy_int.intValue())
 		energy = Math.round(energy * 100) * 0.0001
 		resultMap = createEvent(name: "energy", value: energy, unit: 'kWh')
@@ -219,6 +236,16 @@ private Map parseCustomMessage(String description) {
 
 private Integer convertHexToInt(hex) {
 	Integer.parseInt(hex,16)
+}
+
+
+// Reverses order of bytes in hex string
+def reverseHexString(hexString) {
+	def reversed = ""
+	for (int i = hexString.length(); i > 0; i -= 2) {
+		reversed += hexString.substring(i - 2, i )
+	}
+	return reversed
 }
 
 def formatDate() {
