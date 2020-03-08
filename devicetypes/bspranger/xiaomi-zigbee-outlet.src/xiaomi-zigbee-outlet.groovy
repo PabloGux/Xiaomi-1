@@ -16,7 +16,7 @@
  *  Updates and contributions to code by a4refillpad, bspranger, marcos-mvs, mike-debney, Tiago_Goncalves, and veeceeoh
  *
  * Original version by bspranger
- * Modified by PabloGux to work under Hubitat and report Power Usage --- REVERSE HEX ORDER!!!
+ * Modified by PabloGux to work under Hubitat and report Power Usage --- by reversing HEX ORDER
  */
 
 metadata {
